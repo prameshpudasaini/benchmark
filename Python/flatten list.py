@@ -67,3 +67,73 @@ plot_bench = perfplot.bench(
 
 plot_bench.show()
 plot_bench.save('flatten list.png', transparent = True)
+
+# =============================================================================
+# Benchmark using timeit
+# =============================================================================
+
+import pandas as pd
+import timeit
+
+# # test setup
+# test = [[1,2,3], [4,5,6], [7,8,9]]
+
+# func_time = []
+# for fun in func_list:
+#     print("Method:", fun.__name__)
+#     print("Result:", fun(test))
+    
+#     time = timeit.timeit(
+#         "fun(test)",
+#         setup = "from __main__ import fun, test",
+#         number = 10**6
+#     )
+    
+#     func_time.append(time)
+#     print("Time:", time, "\n")
+
+list_size = [2]
+while list_size[-1] <= 10**2:
+    list_size.append(2**(len(list_size) + 1)) # list of sublist size as squares of 2
+    
+sublist = [[1,2,3,4,5]] # test sublist
+list_df = []
+num_exec = 10**6 # number of executions for timeit function
+
+for size in list_size:
+    print("Size:", size)
+    test = sublist * size # converts test sublist into specified size
+    
+    func_time = []
+    for fun in func_list:
+        print(fun.__name__) # function name
+        time = timeit.timeit(
+            "fun(test)",
+            setup = "from __main__ import fun, test",
+            number = num_exec
+        )
+        
+        func_time.append(time)
+    
+    # convert to np array
+    res_array = np.array([
+        [size] * len(func_list),
+        [func_list[i].__name__ for i in range(len(func_list))],
+        func_time
+    ]).T 
+    
+    # convert to pd dataframe
+    res_df = pd.DataFrame(res_array)
+    list_df.append(res_df)
+    print("\n")
+
+df = pd.concat(list_df, ignore_index = True)
+df.columns = ['input_size', 'method', 'time']
+df = df.astype({'input_size': int, 'method': 'category', 'time': float})
+
+from plotnine import *
+
+(ggplot(df)
+ + geom_line(aes('input_size', 'time', group = 'method', color = 'method'))
+ + labs(x = 'input size', y = 'time (microseconds)') 
+)
